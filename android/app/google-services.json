@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "484645194479",
+    "project_id": "proyectoleyva-9cf94",
+    "storage_bucket": "proyectoleyva-9cf94.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:484645194479:android:f9d53a34a707ae81bca91a",
+        "android_client_info": {
+          "package_name": "com.example.exuii_elrs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBANwBdACLH9SChXX17-NlpQEFq4W4yAS0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:484645194479:android:fe166593592490f0bca91a",
+        "android_client_info": {
+          "package_name": "com.example.exuii_leyva_sardon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBANwBdACLH9SChXX17-NlpQEFq4W4yAS0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
