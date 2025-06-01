@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'home_usuario.dart';
-import 'home_secretaria.dart';
-import 'home_decano.dart';
-import 'home_direccion.dart'; // NUEVA IMPORTACIÓN
+import 'ERLS_home_usuario.dart';
+import 'ERLS_home_secretaria.dart';
+import 'ERLS_home_decano.dart';
+import 'ERLS_home_direccion.dart'; // NUEVA IMPORTACIÓN
 
 class LoginScreen extends StatefulWidget {
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'detalle_solicitud.dart';
+import 'ERLS_detalle_solicitud.dart';
 import 'auth_service.dart'; 
 
 class HomeSecretaria extends StatelessWidget {

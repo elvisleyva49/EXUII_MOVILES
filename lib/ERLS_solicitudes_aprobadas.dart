@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'detalle_solicitud_aprobada.dart';
+import 'ERLS_detalle_solicitud_aprobada.dart';
 
 class SolicitudesAprobadas extends StatelessWidget {
   final Map<String, dynamic> userData;

@@ -30,44 +30,41 @@ class AuthService {
     await prefs.setString(_keyUserRole, role);
   }
 
-  // Mostrar diálogo de confirmación para cerrar sesión
-  static void showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.logout, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Cerrar Sesión'),
-            ],
-          ),
-          content: Text('¿Estás seguro de que deseas cerrar sesión?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop(); // Cerrar diálogo
-                await logout();
-                // Navegar al login y limpiar stack
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login', // O la ruta de tu pantalla de login
-                  (route) => false,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              child: Text('Cerrar Sesión'),
-            ),
+static void showLogoutDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.logout, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Cerrar Sesión'),
           ],
-        );
-      },
-    );
-  }
+        ),
+        content: Text('¿Estás seguro de que deseas cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop(); // Cerrar diálogo
+              await logout();
+              
+              // Regresar hasta la pantalla de selección principal
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Cerrar Sesión'),
+          ),
+        ],
+      );
+    },
+  );
+}
 }

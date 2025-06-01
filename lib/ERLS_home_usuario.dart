@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'solicitud_generica.dart'; // Cambiamos esta importación
-import 'mis_solicitudes.dart';
-import 'solicitudes_aprobadas.dart';
+import 'ERLS_solicitud_generica.dart'; // Cambiamos esta importación
+import 'ERLS_mis_solicitudes.dart';
+import 'ERLS_solicitudes_aprobadas.dart';
 import 'auth_service.dart';
 
 class HomeUsuario extends StatelessWidget {

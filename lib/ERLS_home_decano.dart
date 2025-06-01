@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'detalle_solicitud.dart';
+import 'ERLS_detalle_solicitud.dart';
 import 'auth_service.dart'; 
 
-class HomeDireccion extends StatelessWidget {
+class HomeDecano extends StatelessWidget {
   final Map<String, dynamic> userData;
-
-  HomeDireccion({required this.userData});
+  
+  HomeDecano({required this.userData});
 
   String _getTipoString(int tipo) {
     switch (tipo) {
@@ -25,8 +25,8 @@ class HomeDireccion extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dirección Académica'),
-        backgroundColor: Colors.purple,
+        title: Text('Decano'), // O el título correspondiente
+        backgroundColor: Colors.blue, // O el color que uses
         foregroundColor: Colors.white,
         actions: [
           // Botón de cerrar sesión
@@ -40,8 +40,7 @@ class HomeDireccion extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('solicitud')
-            .where('estado', isEqualTo: 'direccion')
-            .where('tipo', isEqualTo: 3) // Solo prácticas profesionales
+            .where('estado', isEqualTo: 'decano')
             .orderBy('fecha_solicitud', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -54,16 +53,7 @@ class HomeDireccion extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.work_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No hay solicitudes de prácticas profesionales pendientes'),
-                ],
-              ),
-            );
+            return Center(child: Text('No hay solicitudes pendientes'));
           }
 
           return ListView.builder(
@@ -75,35 +65,8 @@ class HomeDireccion extends StatelessWidget {
               return Card(
                 margin: EdgeInsets.all(8.0),
                 child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.purple,
-                    child: Icon(Icons.work, color: Colors.white),
-                  ),
                   title: Text(_getTipoString(data['tipo'] ?? 0)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${data['nombres']} ${data['apellidos']}'),
-                      Text('Código: ${data['codigo']}'),
-                      SizedBox(height: 4),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.purple.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          'Pendiente de Dirección',
-                          style: TextStyle(
-                            color: Colors.purple[700],
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  subtitle: Text('${data['nombres']} ${data['apellidos']}\nCódigo: ${data['codigo']}'),
                   trailing: Icon(Icons.arrow_forward_ios),
                   onTap: () {
                     Navigator.push(
@@ -112,7 +75,7 @@ class HomeDireccion extends StatelessWidget {
                         builder: (context) => DetalleSolicitud(
                           solicitudId: doc.id,
                           solicitudData: data,
-                          userRole: 'direccion',
+                          userRole: 'decano',
                         ),
                       ),
                     );
