@@ -29,6 +29,7 @@ class HomeDireccion extends StatelessWidget {
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
         actions: [
+          // Botón de cerrar sesión
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: () => AuthService.showLogoutDialog(context),
@@ -40,6 +41,7 @@ class HomeDireccion extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collection('solicitud')
             .where('estado', isEqualTo: 'direccion')
+            .where('tipo', isEqualTo: 3) // Solo prácticas profesionales
             .orderBy('fecha_solicitud', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -56,9 +58,9 @@ class HomeDireccion extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.business_center, size: 64, color: Colors.grey),
+                  Icon(Icons.work_outline, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
-                  Text('No hay solicitudes de prácticas pendientes'),
+                  Text('No hay solicitudes de prácticas profesionales pendientes'),
                 ],
               ),
             );
@@ -69,10 +71,14 @@ class HomeDireccion extends StatelessWidget {
             itemBuilder: (context, index) {
               DocumentSnapshot doc = snapshot.data!.docs[index];
               Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
+              
               return Card(
                 margin: EdgeInsets.all(8.0),
                 child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.purple,
+                    child: Icon(Icons.work, color: Colors.white),
+                  ),
                   title: Text(_getTipoString(data['tipo'] ?? 0)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,7 +94,7 @@ class HomeDireccion extends StatelessWidget {
                           border: Border.all(color: Colors.purple.withOpacity(0.3)),
                         ),
                         child: Text(
-                          'Aprobado por Decanato',
+                          'Pendiente de Dirección',
                           style: TextStyle(
                             color: Colors.purple[700],
                             fontSize: 12,

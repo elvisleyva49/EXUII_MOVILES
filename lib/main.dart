@@ -29,6 +29,7 @@ import 'login.dart';
 import 'home_usuario.dart';
 import 'home_secretaria.dart';
 import 'home_decano.dart';
+import 'home_direccion.dart'; // NUEVA IMPORTACIÓN
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,9 +50,10 @@ class MyApp extends StatelessWidget {
       // Rutas nombradas para la navegación
       routes: {
         '/login': (context) => LoginScreen(),
-        '/home_usuario': (context) => HomeUsuario(userData: {}), // Ajusta según tus parámetros
-        '/home_secretaria': (context) => HomeSecretaria(userData: {}), // Ajusta según tus parámetros
-        '/home_decano': (context) => HomeDecano(userData: {}), // Ajusta según tus parámetros
+        '/home_usuario': (context) => HomeUsuario(userData: {}),
+        '/home_secretaria': (context) => HomeSecretaria(userData: {}),
+        '/home_decano': (context) => HomeDecano(userData: {}),
+        '/home_direccion': (context) => HomeDireccion(userData: {}), // NUEVA RUTA
       },
       // Ruta inicial nombrada
       initialRoute: '/',

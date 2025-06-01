@@ -17,6 +17,7 @@ class DetalleSolicitud extends StatefulWidget {
 }
 
 class _DetalleSolicitudState extends State<DetalleSolicitud> {
+  final TextEditingController _observacionesController = TextEditingController();
   bool _isLoading = false;
 
   String _getTipoString(int tipo) {
@@ -32,68 +33,70 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
     }
   }
 
-  String _getEstadoString(String estado) {
-    switch (estado) {
-      case 'secretaria':
-        return 'Pendiente - Secretaría';
-      case 'decano':
-        return 'Pendiente - Decanato';
-      case 'secretaria_pendiente':
-        return 'Aprobado por Decanato';
-      case 'aprobado':
-        return 'Aprobado';
-      case 'rechazado':
-        return 'Rechazado';
-      default:
-        return estado;
+  String _getEstadoSiguiente() {
+    String estadoActual = widget.solicitudData['estado'] ?? '';
+    int tipoSolicitud = widget.solicitudData['tipo'] ?? 0;
+
+    // Para prácticas profesionales (tipo 3) - flujo especial
+    if (tipoSolicitud == 3) {
+      switch (estadoActual) {
+        case 'secretaria':
+          return 'decano';
+        case 'decano':
+          return 'direccion'; // NUEVO: va a dirección
+        case 'direccion':
+          return 'secretaria_pendiente'; // NUEVO: dirección aprueba y va a secretaría final
+        case 'secretaria_pendiente':
+          return 'aprobado';
+        default:
+          return 'aprobado';
+      }
+    } else {
+      // Para separación de ciclo y constancia de estudios - flujo normal
+      switch (estadoActual) {
+        case 'secretaria':
+          return 'decano';
+        case 'decano':
+          return 'secretaria_pendiente';
+        case 'secretaria_pendiente':
+          return 'aprobado';
+        default:
+          return 'aprobado';
+      }
     }
   }
 
-  Color _getEstadoColor(String estado) {
-    switch (estado) {
-      case 'secretaria':
-      case 'decano':
-      case 'secretaria_pendiente':
-        return Colors.orange;
-      case 'aprobado':
-        return Colors.green;
-      case 'rechazado':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
+  // LA LÓGICA CRÍTICA DE APROBACIÓN
   Future<void> _aprobarSolicitud() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      String nuevoEstado;
-      Map<String, dynamic> updateData = {};
+      String nuevoEstado = _getEstadoSiguiente();
+      Map<String, dynamic> updateData = {
+        'estado': nuevoEstado,
+      };
 
-      if (widget.userRole == 'decano') {
-        // Decano aprueba -> pasa a secretaria_pendiente
-        nuevoEstado = 'secretaria_pendiente';
-        updateData = {
-          'estado': nuevoEstado,
-          'fecha_aprobacion_decano': FieldValue.serverTimestamp(),
-        };
-      } else if (widget.userRole == 'secretaria_final') {
-        // Secretaria aprobación final -> aprobado
-        nuevoEstado = 'aprobado';
-        updateData = {
-          'estado': nuevoEstado,
-          'fecha_aprobacion': FieldValue.serverTimestamp(),
-        };
-      } else {
-        // Secretaria normal -> decano
-        nuevoEstado = 'decano';
-        updateData = {
-          'estado': nuevoEstado,
-          'fecha_revision_secretaria': FieldValue.serverTimestamp(),
-        };
+      // Si es el estado final (aprobado), agregar fecha de aprobación
+      if (nuevoEstado == 'aprobado') {
+        updateData['fecha_aprobacion'] = FieldValue.serverTimestamp();
+      }
+
+      // Agregar información del aprobador según el rol
+      switch (widget.userRole) {
+        case 'secretaria':
+          updateData['aprobado_por_secretaria'] = DateTime.now().toIso8601String();
+          break;
+        case 'decano':
+          updateData['aprobado_por_decano'] = DateTime.now().toIso8601String();
+          break;
+        case 'direccion': // NUEVO CASO
+          updateData['aprobado_por_direccion'] = DateTime.now().toIso8601String();
+          break;
+        case 'secretaria_final':
+          updateData['aprobado_por_secretaria_final'] = DateTime.now().toIso8601String();
+          break;
       }
 
       await FirebaseFirestore.instance
@@ -102,9 +105,28 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
           .update(updateData);
 
       if (mounted) {
+        String mensaje = '';
+        if (nuevoEstado == 'aprobado') {
+          mensaje = 'Solicitud aprobada exitosamente';
+        } else {
+          switch (nuevoEstado) {
+            case 'decano':
+              mensaje = 'Solicitud enviada al Decanato';
+              break;
+            case 'direccion':
+              mensaje = 'Solicitud enviada a Dirección Académica';
+              break;
+            case 'secretaria_pendiente':
+              mensaje = 'Solicitud enviada a Secretaría para finalización';
+              break;
+            default:
+              mensaje = 'Solicitud procesada correctamente';
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Solicitud aprobada correctamente'),
+            content: Text(mensaje),
             backgroundColor: Colors.green,
           ),
         );
@@ -129,24 +151,47 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
   }
 
   Future<void> _rechazarSolicitud() async {
-    // Mostrar diálogo para motivo de rechazo
-    String? motivo = await _showMotivoDialog();
-    if (motivo == null || motivo.isEmpty) return;
+    if (_observacionesController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Debe ingresar observaciones para rechazar la solicitud'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
+      Map<String, dynamic> updateData = {
+        'estado': 'desaprobado',
+        'observaciones': _observacionesController.text.trim(),
+        'fecha_desaprobacion': FieldValue.serverTimestamp(),
+      };
+
+      // Agregar información del rechazador según el rol
+      switch (widget.userRole) {
+        case 'secretaria':
+          updateData['rechazado_por_secretaria'] = DateTime.now().toIso8601String();
+          break;
+        case 'decano':
+          updateData['rechazado_por_decano'] = DateTime.now().toIso8601String();
+          break;
+        case 'direccion': // NUEVO CASO
+          updateData['rechazado_por_direccion'] = DateTime.now().toIso8601String();
+          break;
+        case 'secretaria_final':
+          updateData['rechazado_por_secretaria_final'] = DateTime.now().toIso8601String();
+          break;
+      }
+
       await FirebaseFirestore.instance
           .collection('solicitud')
           .doc(widget.solicitudId)
-          .update({
-        'estado': 'rechazado',
-        'motivo_rechazo': motivo,
-        'fecha_rechazo': FieldValue.serverTimestamp(),
-        'rechazado_por': widget.userRole,
-      });
+          .update(updateData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -175,81 +220,34 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
     }
   }
 
-  Future<String?> _showMotivoDialog() async {
-    String motivo = '';
-    return showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Motivo de rechazo'),
-          content: TextField(
-            onChanged: (value) => motivo = value,
-            decoration: InputDecoration(
-              hintText: 'Ingrese el motivo del rechazo...',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 3,
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancelar'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: Text('Rechazar', style: TextStyle(color: Colors.red)),
-              onPressed: () => Navigator.of(context).pop(motivo),
-            ),
-          ],
-        );
-      },
-    );
+  String _getRoleName() {
+    switch (widget.userRole) {
+      case 'secretaria':
+        return 'Secretaría';
+      case 'decano':
+        return 'Decanato';
+      case 'direccion':
+        return 'Dirección Académica';
+      case 'secretaria_final':
+        return 'Secretaría (Final)';
+      default:
+        return 'Usuario';
+    }
   }
 
-  void _showFullScreenImage(String imageUrl) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            iconTheme: IconThemeData(color: Colors.white),
-            title: Text('Voucher de Pago', style: TextStyle(color: Colors.white)),
-          ),
-          body: Center(
-            child: InteractiveViewer(
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.contain,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / 
-                            loadingProgress.expectedTotalBytes!
-                          : null,
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error, color: Colors.white, size: 64),
-                      SizedBox(height: 16),
-                      Text(
-                        'No se pudo cargar la imagen',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  Color _getRoleColor() {
+    switch (widget.userRole) {
+      case 'secretaria':
+        return Colors.blue;
+      case 'decano':
+        return Colors.green;
+      case 'direccion':
+        return Colors.purple;
+      case 'secretaria_final':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -257,7 +255,7 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Detalle de Solicitud'),
-        backgroundColor: _getEstadoColor(widget.solicitudData['estado']),
+        backgroundColor: _getRoleColor(),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -265,88 +263,53 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Estado actual
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _getEstadoColor(widget.solicitudData['estado']).withOpacity(0.1),
-                border: Border.all(color: _getEstadoColor(widget.solicitudData['estado'])),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.info,
-                    color: _getEstadoColor(widget.solicitudData['estado']),
-                    size: 32,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    _getEstadoString(widget.solicitudData['estado']),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: _getEstadoColor(widget.solicitudData['estado']),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20),
-
-            // Información del estudiante
+            // Header con información básica
             Card(
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Información del Estudiante',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _getTipoString(widget.solicitudData['tipo'] ?? 0),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _getRoleColor(),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _getRoleName(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 12),
-                    _buildInfoRow('Nombres:', widget.solicitudData['nombres']),
-                    _buildInfoRow('Apellidos:', widget.solicitudData['apellidos']),
-                    _buildInfoRow('DNI:', widget.solicitudData['dni']),
-                    _buildInfoRow('Código:', widget.solicitudData['codigo']),
-                    _buildInfoRow('Escuela:', widget.solicitudData['escuela']),
-                    _buildInfoRow('Facultad:', widget.solicitudData['facultad']),
+                    SizedBox(height: 16),
+                    Text('Estudiante: ${widget.solicitudData['nombres']} ${widget.solicitudData['apellidos']}'),
+                    Text('Código: ${widget.solicitudData['codigo']}'),
+                    Text('DNI: ${widget.solicitudData['dni']}'),
+                    Text('Escuela: ${widget.solicitudData['escuela']}'),
+                    Text('Estado actual: ${widget.solicitudData['estado']}'),
                   ],
                 ),
               ),
             ),
+            
             SizedBox(height: 16),
-
-            // Tipo de solicitud
-            Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tipo de Solicitud',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      _getTipoString(widget.solicitudData['tipo'] ?? 0),
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-
+            
             // Contenido de la solicitud
             Card(
               child: Padding(
@@ -355,13 +318,13 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Contenido de la Solicitud',
+                      'Contenido de la solicitud:',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 8),
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.all(12),
@@ -371,18 +334,19 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        widget.solicitudData['texto_solicitud'] ?? 'No disponible',
-                        style: TextStyle(fontSize: 14, height: 1.5),
+                        widget.solicitudData['texto_solicitud'] ?? 'Sin contenido',
+                        style: TextStyle(fontSize: 14),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+            
             SizedBox(height: 16),
-
-            // Voucher - Ahora muestra la imagen directamente
-            if (widget.solicitudData['voucher'] != null)
+            
+            // Voucher
+            if (widget.solicitudData['voucher'] != null) ...[
               Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
@@ -390,145 +354,112 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Voucher de Pago',
+                        'Voucher de pago:',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () => _showFullScreenImage(widget.solicitudData['voucher']),
-                        child: Container(
-                          width: double.infinity,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              widget.solicitudData['voucher'],
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded / 
-                                          loadingProgress.expectedTotalBytes!
-                                        : null,
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[100],
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.error, color: Colors.grey, size: 48),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'No se pudo cargar la imagen',
-                                        style: TextStyle(color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
                       SizedBox(height: 8),
-                      Text(
-                        'Toca la imagen para verla en tamaño completo',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
+                      Center(
+                        child: Container(
+                          height: 200,
+                          child: Image.network(
+                            widget.solicitudData['voucher'],
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 200,
+                                color: Colors.grey[200],
+                                child: Center(
+                                  child: Text('Error al cargar imagen'),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            SizedBox(height: 20),
-
-            // Botones de acción
-            if (!_isLoading) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _aprobarSolicitud,
-                      child: Text('Aprobar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _rechazarSolicitud,
-                      child: Text('Rechazar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              SizedBox(height: 16),
+            ],
+            
+            // Campo de observaciones
+            Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(width: 12),
-                    Text('Procesando...'),
+                    Text(
+                      'Observaciones (opcional para aprobar, obligatorio para rechazar):',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    TextField(
+                      controller: _observacionesController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Ingrese observaciones...',
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
+            ),
+            
+            SizedBox(height: 24),
+            
+            // Botones de acción
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _rechazarSolicitud,
+                    icon: _isLoading
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(Icons.close),
+                    label: Text('Rechazar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _aprobarSolicitud,
+                    icon: _isLoading
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(Icons.check),
+                    label: Text('Aprobar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, dynamic value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value?.toString() ?? 'No disponible',
-              style: TextStyle(color: Colors.black87),
-            ),
-          ),
-        ],
       ),
     );
   }

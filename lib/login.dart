@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_usuario.dart';
 import 'home_secretaria.dart';
 import 'home_decano.dart';
+import 'home_direccion.dart'; // NUEVA IMPORTACIÓN
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -54,9 +55,15 @@ class _LoginScreenState extends State<LoginScreen> {
               builder: (context) => HomeDecano(userData: userData),
             ),
           );
+        } else if (rol == 'direccion') { // NUEVO CASO
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeDireccion(userData: userData),
+            ),
+          );
         }
-      } 
-      else {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Usuario o contraseña incorrectos')),
         );
