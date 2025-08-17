@@ -33,7 +33,7 @@ class DetalleSolicitudAprobada extends StatelessWidget {
     
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: PdfPageFormat.letter,
         margin: pw.EdgeInsets.all(32),
         build: (pw.Context context) {
           return pw.Column(
@@ -50,7 +50,7 @@ class DetalleSolicitudAprobada extends StatelessWidget {
                     borderRadius: pw.BorderRadius.circular(10),
                   ),
                   child: pw.Text(
-                    '✓ SOLICITUD APROBADA',
+                    'SOLICITUD APROBADA',
                     style: pw.TextStyle(
                       fontSize: 24,
                       fontWeight: pw.FontWeight.bold,

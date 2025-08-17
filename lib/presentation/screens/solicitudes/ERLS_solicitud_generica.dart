@@ -57,7 +57,7 @@ Tacna, $fecha
 
 Señor
 Decano de la Facultad de ${widget.userData['facultad']}
-Presente.-
+Presente.
 
 Asunto: Solicitud de Separación de Ciclo
 
@@ -230,81 +230,83 @@ DNI: ${widget.userData['dni']}''';
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _textController,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Edite el texto si es necesario',
-                  contentPadding: EdgeInsets.all(12),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                border: Border.all(color: Colors.orange),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.warning, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text(
-                        'Antes de enviar:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange[800],
-                        ),
-                      ),
-                    ],
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Edite el texto si es necesario',
+                    contentPadding: EdgeInsets.all(12),
                   ),
-                  SizedBox(height: 8),
-                  Text('• Revise que la redacción no tenga faltas ortográficas'),
-                  Text('• Revise que sus datos estén correctamente escritos'),
-                  Text('• Cualquier caso de estos serán motivo de rechazo'),
-                ],
+                ),
               ),
-            ),
-            SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading ? null : _enviarSolicitud,
-                icon: _isLoading 
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              SizedBox(height: 20),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  border: Border.all(color: Colors.orange),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text(
+                          'Antes de enviar:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange[800],
+                          ),
                         ),
-                      )
-                    : Icon(Icons.send),
-                label: Text(
-                  _isLoading ? 'Enviando...' : 'Enviar Solicitud',
-                  style: TextStyle(fontSize: 16),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text('• Revise que la redacción no tenga faltas ortográficas'),
+                    Text('• Revise que sus datos estén correctamente escritos'),
+                    Text('• Cualquier caso de estos serán motivo de rechazo'),
+                  ],
                 ),
               ),
-            ),
-          ],
+              SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _enviarSolicitud,
+                  icon: _isLoading 
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Icon(Icons.send),
+                  label: Text(
+                    _isLoading ? 'Enviando...' : 'Enviar Solicitud',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

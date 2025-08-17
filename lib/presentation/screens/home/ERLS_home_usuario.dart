@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'ERLS_solicitud_generica.dart'; // Cambiamos esta importación
-import 'ERLS_mis_solicitudes.dart';
-import 'ERLS_solicitudes_aprobadas.dart';
-import 'auth_service.dart';
+import '../solicitudes/ERLS_solicitud_generica.dart'; // Cambiamos esta importación
+import '../solicitudes/ERLS_mis_solicitudes.dart';
+import '../solicitudes/ERLS_solicitudes_aprobadas.dart';
+import '../../../services/auth_service.dart';
 
 class HomeUsuario extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -13,7 +13,7 @@ class HomeUsuario extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Home Usuario'),
+        title: Text('Panel Usuario'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [

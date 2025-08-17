@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'ERLS_login.dart'; // Asegúrate de importar tu pantalla de login
+import 'core/config/firebase_options.dart';
+import 'presentation/screens/auth/ERLS_login.dart'; // Asegúrate de importar tu pantalla de login
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
