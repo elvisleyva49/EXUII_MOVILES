@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:intl/intl.dart';
 
 class SolicitudGenerica extends StatefulWidget {
@@ -20,9 +17,7 @@ class SolicitudGenerica extends StatefulWidget {
 
 class _SolicitudGenericaState extends State<SolicitudGenerica> {
   late TextEditingController _textController;
-  File? _selectedImage;
   bool _isLoading = false;
-  bool _isPickingImage = false;
 
   @override
   void initState() {
@@ -109,7 +104,7 @@ ${widget.userData['nombres']} ${widget.userData['apellidos']}
 Código: ${widget.userData['codigo']}
 DNI: ${widget.userData['dni']}''';
 
-      case 3: // Prácticas profesionales (placeholder para futuro)
+      case 3: // Prácticas profesionales
         return '''UNIVERSIDAD PRIVADA DE TACNA
 FACULTAD DE ${widget.userData['facultad']}
 ESCUELA PROFESIONAL DE ${widget.userData['escuela']}
@@ -141,128 +136,7 @@ DNI: ${widget.userData['dni']}''';
     }
   }
 
-  Future<void> _pickImage() async {
-    if (_isPickingImage) return;
-    
-    setState(() {
-      _isPickingImage = true;
-    });
-    
-    try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-        maxWidth: 1920,
-        maxHeight: 1920,
-      );
-      
-      if (pickedFile != null) {
-        setState(() {
-          _selectedImage = File(pickedFile.path);
-        });
-        print('Imagen seleccionada: ${pickedFile.path}');
-      }
-    } catch (e) {
-      print('Error picking image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al seleccionar imagen: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isPickingImage = false;
-        });
-      }
-    }
-  }
-
-  Future<String?> _uploadImage() async {
-    if (_selectedImage == null) return null;
-    
-    try {
-      print('Iniciando subida de imagen...');
-      
-      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      String tipoNombre = widget.tipoSolicitud == 1 ? 'separacion' : 
-                         widget.tipoSolicitud == 2 ? 'constancia' : 'practicas';
-      String fileName = 'vouchers/solicitud_${tipoNombre}_${widget.userData['codigo']}_$timestamp.jpg';
-      
-      print('Nombre del archivo: $fileName');
-      
-      Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
-      
-      SettableMetadata metadata = SettableMetadata(
-        contentType: 'image/jpeg',
-        customMetadata: {
-          'uploaded_by': widget.userData['codigo'],
-          'tipo_solicitud': tipoNombre,
-        },
-      );
-      
-      UploadTask uploadTask = storageRef.putFile(_selectedImage!, metadata);
-      
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        print('Progreso: ${(snapshot.bytesTransferred / snapshot.totalBytes) * 100}%');
-      });
-      
-      TaskSnapshot snapshot = await uploadTask;
-      String downloadUrl = await snapshot.ref.getDownloadURL();
-      print('URL de descarga obtenida: $downloadUrl');
-      
-      return downloadUrl;
-      
-    } catch (e) {
-      print('Error detallado al subir imagen: $e');
-      
-      String errorMessage = 'Error al subir imagen';
-      if (e.toString().contains('permission-denied')) {
-        errorMessage = 'Sin permisos para subir archivos. Verifica las reglas de Firebase Storage.';
-      } else if (e.toString().contains('network')) {
-        errorMessage = 'Error de conexión. Verifica tu internet.';
-      } else if (e.toString().contains('quota-exceeded')) {
-        errorMessage = 'Cuota de almacenamiento excedida.';
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      
-      return null;
-    }
-  }
-
   Future<void> _enviarSolicitud() async {
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Debe seleccionar una imagen del voucher'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    if (!await _selectedImage!.exists()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('El archivo seleccionado no existe'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -275,7 +149,7 @@ DNI: ${widget.userData['dni']}''';
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: Text('Siguiente'),
+              child: Text('Enviar'),
               onPressed: () async {
                 Navigator.of(context).pop();
                 await _procesarEnvio();
@@ -293,60 +167,42 @@ DNI: ${widget.userData['dni']}''';
     });
 
     try {
-      print('Iniciando proceso de envío...');
+      print('Guardando solicitud en Firestore...');
       
-      String? voucherUrl = await _uploadImage();
-      print('Resultado de subida: $voucherUrl');
+      Map<String, dynamic> solicitudData = {
+        'usuario_id': widget.userData['id'],
+        'nombres': widget.userData['nombres'],
+        'apellidos': widget.userData['apellidos'],
+        'dni': widget.userData['dni'],
+        'codigo': widget.userData['codigo'],
+        'escuela': widget.userData['escuela'],
+        'facultad': widget.userData['facultad'],
+        'texto_solicitud': _textController.text,
+        'estado': 'secretaria',
+        'tipo': widget.tipoSolicitud,
+        'fecha_solicitud': FieldValue.serverTimestamp(),
+        'hora_solicitud': DateFormat('HH:mm:ss').format(DateTime.now()),
+        'created_at': DateTime.now().toIso8601String(),
+      };
       
-      if (voucherUrl != null && voucherUrl.isNotEmpty) {
-        print('Guardando solicitud en Firestore...');
-        
-        Map<String, dynamic> solicitudData = {
-          'usuario_id': widget.userData['id'],
-          'nombres': widget.userData['nombres'],
-          'apellidos': widget.userData['apellidos'],
-          'dni': widget.userData['dni'],
-          'codigo': widget.userData['codigo'],
-          'escuela': widget.userData['escuela'],
-          'facultad': widget.userData['facultad'],
-          'texto_solicitud': _textController.text,
-          'voucher': voucherUrl,
-          'estado': 'secretaria',
-          'tipo': widget.tipoSolicitud,
-          'fecha_solicitud': FieldValue.serverTimestamp(),
-          'hora_solicitud': DateFormat('HH:mm:ss').format(DateTime.now()),
-          'created_at': DateTime.now().toIso8601String(),
-        };
-        
-        print('Datos a guardar: $solicitudData');
-        
-        DocumentReference docRef = await FirebaseFirestore.instance
-            .collection('solicitud')
-            .add(solicitudData);
-        
-        print('Documento creado con ID: ${docRef.id}');
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Solicitud enviada correctamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context);
-        }
-        
-      } else {
-        print('Error: No se obtuvo URL del voucher');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error al cargar la imagen. Intenta nuevamente.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      print('Datos a guardar: $solicitudData');
+      
+      DocumentReference docRef = await FirebaseFirestore.instance
+          .collection('solicitud')
+          .add(solicitudData);
+      
+      print('Documento creado con ID: ${docRef.id}');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Solicitud enviada correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
       }
+      
     } catch (e) {
       print('Error en procesarEnvío: $e');
       if (mounted) {
@@ -392,49 +248,6 @@ DNI: ${widget.userData['dni']}''';
               ),
             ),
             SizedBox(height: 20),
-            Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Voucher de pago',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            _selectedImage != null 
-                                ? 'Imagen seleccionada ✓' 
-                                : 'Seleccione voucher de pago',
-                            style: TextStyle(
-                              color: _selectedImage != null 
-                                  ? Colors.green 
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: _isPickingImage ? null : _pickImage,
-                      icon: _isPickingImage 
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(Icons.image),
-                      label: Text(_isPickingImage ? 'Cargando...' : 'Seleccionar'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -461,7 +274,6 @@ DNI: ${widget.userData['dni']}''';
                   SizedBox(height: 8),
                   Text('• Revise que la redacción no tenga faltas ortográficas'),
                   Text('• Revise que sus datos estén correctamente escritos'),
-                  Text('• Envíe una foto nítida del voucher'),
                   Text('• Cualquier caso de estos serán motivo de rechazo'),
                 ],
               ),

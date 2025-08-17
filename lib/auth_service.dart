@@ -54,7 +54,10 @@ static void showLogoutDialog(BuildContext context) {
               await logout();
               
               // Regresar hasta la pantalla de selección principal
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/login',
+                (Route<dynamic> route) => false,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

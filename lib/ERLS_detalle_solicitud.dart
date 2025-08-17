@@ -345,47 +345,6 @@ class _DetalleSolicitudState extends State<DetalleSolicitud> {
             
             SizedBox(height: 16),
             
-            // Voucher
-            if (widget.solicitudData['voucher'] != null) ...[
-              Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Voucher de pago:',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Center(
-                        child: Container(
-                          height: 200,
-                          child: Image.network(
-                            widget.solicitudData['voucher'],
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 200,
-                                color: Colors.grey[200],
-                                child: Center(
-                                  child: Text('Error al cargar imagen'),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
-            ],
-            
             // Campo de observaciones
             Card(
               child: Padding(
