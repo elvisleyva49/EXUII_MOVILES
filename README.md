@@ -1,5 +1,8 @@
 # Sistema de Gestión de Solicitudes Universitarias
 
+<img width="1024" height="1024" alt="Diseño sin título (1)" src="https://github.com/user-attachments/assets/bd1d86fc-b354-42ad-87d3-d58e2846939b" />
+
+
 ## Descripción del Proyecto
 El **Sistema de Gestión de Solicitudes Universitarias** es una aplicación móvil desarrollada en **Flutter** que permite la gestión digital de solicitudes académicas dentro de la universidad. Su propósito es automatizar los procesos de creación, revisión, aprobación y entrega de documentos académicos, garantizando trazabilidad, seguridad y eficiencia.
 
@@ -69,9 +72,6 @@ El flujo de aprobación es más completo debido a la validación adicional reque
 
 ## Contacto y Soporte
 En caso de dudas o problemas al ejecutar el APK, contactarse con el equipo de desarrollo:  
-- **Correo:** soporte@upt.pe  
-- **Teléfono:** +51 123 456 789  
+- **Correo:** elvisleyva49@gmail.com  
+- **Teléfono:** +51 971 899 955
 
----
-
-Este README permite a los evaluadores reproducir los flujos de prueba de forma precisa y entender la estructura de aprobación de cada tipo de solicitud académica.
